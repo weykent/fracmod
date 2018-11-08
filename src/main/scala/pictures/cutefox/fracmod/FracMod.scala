@@ -3,10 +3,11 @@ package pictures.cutefox.fracmod
 import net.minecraft.client.renderer.block.model.ModelResourceLocation
 import net.minecraft.item.ItemBlock
 import net.minecraftforge.client.model.ModelLoader
+import net.minecraftforge.fml.client.registry.ClientRegistry
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.Mod.EventHandler
-import net.minecraftforge.fml.common.event.FMLPreInitializationEvent
-import net.minecraftforge.fml.common.registry.ForgeRegistries
+import net.minecraftforge.fml.common.event.{FMLInitializationEvent, FMLPreInitializationEvent}
+import net.minecraftforge.fml.common.registry.{ForgeRegistries, GameRegistry}
 
 
 @Mod(modid = FracMod.MODID, version = FracMod.VERSION, modLanguage = "scala")
@@ -25,8 +26,13 @@ object FracMod {
       .setRegistryName(tank.getRegistryName)
     ForgeRegistries.ITEMS.register(tankItem)
 
-    //GameRegistry.registerTileEntity(classOf[TileTank], tank.getRegistryName)
+    GameRegistry.registerTileEntity(classOf[TileTank], tank.getRegistryName)
     ModelLoader.setCustomModelResourceLocation(
       tankItem, 0, new ModelResourceLocation(tankItem.getRegistryName, "inventory"))
+  }
+
+  @EventHandler
+  def init(event: FMLInitializationEvent): Unit = {
+    ClientRegistry.bindTileEntitySpecialRenderer(classOf[TileTank], new RenderTank)
   }
 }
