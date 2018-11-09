@@ -10,7 +10,10 @@ class RenderTank extends FastTESR[TileTank] {
   override def renderTileEntityFast(tank: TileTank, x: Double, y: Double, z: Double,
                                     partialTicks: Float, destroyStage: Int, partial: Float,
                                     buffer: BufferBuilder): Unit = {
-    val fluid = tank.myFluidStack
+    if (tank.fluids.isEmpty) {
+      return
+    }
+    val fluid = tank.fluids.head
     val lightValue = fluid.getFluid.getLuminosity(fluid)
     val lightCombined = tank.getWorld.getCombinedLight(tank.getPos, lightValue)
 

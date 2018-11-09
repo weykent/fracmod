@@ -1,0 +1,24 @@
+syntax = "proto3";
+option java_package = "pictures.cutefox.fracmod";
+
+message EmbeddedNBT {
+    string data = 1;
+}
+
+message NetworkRequest {
+    oneof kind {
+        UpdateTank updateTank = 1;
+    }
+}
+
+message NetworkResponse {
+
+}
+
+message UpdateTank {
+    TankContents newContents = 1;
+}
+
+message TankContents {
+    EmbeddedNBT fluids = 1;
+}
