@@ -17,6 +17,9 @@ object FracMod {
 
   @EventHandler
   def preInit(event: FMLPreInitializationEvent): Unit = {
+    // XXX: Should probably do all of this with the other event subscriber
+    // model but it's not clear how to split it all up. Where do the tile
+    // entity and model resource registration go?
     val tank = new BlockTank()
       .setUnlocalizedName("tank")
       .setRegistryName("tank")

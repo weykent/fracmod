@@ -22,8 +22,12 @@ object NetDispatch {
     }
   }
 
+  // XXX: I'm not super happy with the organization of this dispatching. Should
+  // I make these in separate files? How does that work with typeclass implicit
+  // objects?
   implicit def dispatchUpdateTank: NetDispatch[UpdateTank] = (update, ctx) => {
     val mc = Minecraft.getMinecraft
+    // XXX: There's a better way to write anonymous Runnable blocks, right?
     mc.addScheduledTask(new Runnable {
       override def run(): Unit = {
         val pos = update.getPosition

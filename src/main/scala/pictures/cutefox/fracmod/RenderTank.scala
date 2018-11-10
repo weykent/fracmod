@@ -24,6 +24,7 @@ class RenderTank extends FastTESR[TileTank] {
       new Vec3d(0.13, 0.01, 0.13),
       new Vec3d(0.86, 0.99, 0.86),
       buffer, null)
+    // XXX: Is this still necessary?
     buffer.setTranslation(0, 0, 0)
   }
 }

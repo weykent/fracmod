@@ -31,6 +31,8 @@ class TileTank extends TileEntity {
 
   override def hasFastRenderer: Boolean = true
 
+  // XXX: Obviously needs some deduplication across these four methods, but I'm
+  // still unsure of the relationships between them.
   override def getUpdateTag: NBTTagCompound = {
     val ret = super.getUpdateTag
       .withEncoded("fluids", fluids)
@@ -62,11 +64,15 @@ class TileTank extends TileEntity {
     world = worldIn
 
   private def sendFluids(): Unit = {
+    // XXX: Make a typeclass for these conversions too? Vec3i/EmbeddedNBT are
+    // pretty trivial so far but maybe the conversions will get more
+    // complicated with other types.
     val position = serialization.Vec3i(pos.getX, pos.getY, pos.getZ)
     val req = NetPacket(NetPacket.Kind.UpdateTank(
       UpdateTank(
         position = Some(position),
         newContents = Some(TankContents(Some(serialization.NBT.embed(fluids)))))))
+    // XXX: Figure out how to send updates to a smaller subset of clients.
     NetMessage.sendToClient(req)
 
     val displayFluids = fluids.map(fs => fs.getLocalizedName -> fs.amount).toMap

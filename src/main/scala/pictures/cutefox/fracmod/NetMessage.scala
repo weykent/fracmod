@@ -12,6 +12,9 @@ class NetMessage(private var messageOpt: Option[NetPacket] = None) extends IMess
 
   override def toBytes(buf: ByteBuf): Unit = {
     for (message <- messageOpt) {
+      // XXX: I.. think this might be adding a bunch of zero padding on the
+      // end. Not sure if that's important to fix, or how to tell where the end
+      // of the serialized message is.
       message.writeDelimitedTo(new ByteBufOutputStream(buf))
     }
     println(s"bytes out: ${NetMessage.bytesHex(buf.array())}")
