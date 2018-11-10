@@ -1,9 +1,9 @@
 package pictures.cutefox.fracmod.serialization
 
-import collection.JavaConverters._
 import net.minecraft.nbt.{JsonToNBT, NBTBase, NBTTagCompound, NBTTagList}
 import net.minecraftforge.fluids.FluidStack
 
+import scala.collection.JavaConverters._
 import scala.util.Try
 
 trait NBT[T] {
@@ -13,11 +13,11 @@ trait NBT[T] {
 
 object NBT {
   def embed[T](thing: T)(implicit obj: NBT[T]): EmbeddedNBT =
-    EmbeddedNBT(obj.encode(thing).toString)
+    EmbeddedNBT(new NBTTagCompound().withEncoded("_", thing).toString)
 
   def unembed[T](msg: EmbeddedNBT)(implicit obj: NBT[T]): Option[T] =
     Option(JsonToNBT.getTagFromJson(msg.data))
-      .flatMap(obj.decode)
+      .flatMap(tag => tag.loadDecoded[T]("_"))
 
   def saveInto[T](name: String, thing: T, into: NBTTagCompound)(implicit obj: NBT[T]): NBTTagCompound = {
     into.setTag(name, obj.encode(thing))
@@ -28,13 +28,11 @@ object NBT {
     Option(from.getTag(name)).flatMap(obj.decode)
 
   implicit class NBTTagCompoundOps(val compound: NBTTagCompound) extends AnyVal {
-    def withEncoded[T](name: String, thing: T)(implicit obj: NBT[T]): NBTTagCompound = {
-      compound.setTag(name, obj.encode(thing))
-      compound
-    }
+    def withEncoded[T](name: String, thing: T)(implicit obj: NBT[T]): NBTTagCompound =
+      NBT.saveInto(name, thing, compound)
 
     def loadDecoded[T](name: String)(implicit obj: NBT[T]): Option[T] =
-      Option(compound.getTag(name)).flatMap(obj.decode)
+      NBT.loadFrom[T](name, compound)
   }
 
   implicit def handleFluidStack: NBT[FluidStack] = new NBT[FluidStack] {

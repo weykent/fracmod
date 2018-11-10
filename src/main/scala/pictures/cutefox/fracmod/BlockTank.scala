@@ -22,6 +22,9 @@ class BlockTank extends Block(Material.GLASS) {
 
   override def onBlockPlacedBy(worldIn: World, pos: BlockPos, state: IBlockState, placer: EntityLivingBase, stack: ItemStack): Unit = {
     super.onBlockPlacedBy(worldIn, pos, state, placer, stack)
+    if (worldIn.isRemote) {
+      return
+    }
     worldIn.getTileEntity(pos) match {
       case tank: TileTank => {
         tank.setSomeFluid()

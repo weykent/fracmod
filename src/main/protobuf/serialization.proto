@@ -5,18 +5,21 @@ message EmbeddedNBT {
     string data = 1;
 }
 
-message NetworkRequest {
+message Vec3i {
+    sint32 x = 1;
+    sint32 y = 2;
+    sint32 z = 3;
+}
+
+message NetPacket {
     oneof kind {
         UpdateTank updateTank = 1;
     }
 }
 
-message NetworkResponse {
-
-}
-
 message UpdateTank {
-    TankContents newContents = 1;
+    Vec3i position = 1;
+    TankContents newContents = 2;
 }
 
 message TankContents {
