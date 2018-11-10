@@ -11,14 +11,14 @@ import net.minecraft.util.BlockRenderLayer
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.World
 
-class BlockTank extends Block(Material.GLASS) {
+class BlockFractionatingColumn extends Block(Material.GLASS) {
   setCreativeTab(CreativeTabs.MISC)
 
   override def hasTileEntity(state: IBlockState): Boolean = true
   override def hasTileEntity: Boolean = true
 
   override def createTileEntity(world: World, state: IBlockState): TileEntity =
-    new TileTank
+    new TileFractionatingColumn
 
   override def onBlockPlacedBy(worldIn: World, pos: BlockPos, state: IBlockState, placer: EntityLivingBase, stack: ItemStack): Unit = {
     super.onBlockPlacedBy(worldIn, pos, state, placer, stack)
@@ -26,8 +26,8 @@ class BlockTank extends Block(Material.GLASS) {
       return
     }
     worldIn.getTileEntity(pos) match {
-      case tank: TileTank => {
-        tank.setSomeFluid()
+      case tile: TileFractionatingColumn => {
+        tile.setSomeFluid()
       }
     }
   }
@@ -35,4 +35,8 @@ class BlockTank extends Block(Material.GLASS) {
   override def isOpaqueCube(state: IBlockState): Boolean = false
   override def isFullCube(state: IBlockState): Boolean = false
   override def getBlockLayer: BlockRenderLayer = BlockRenderLayer.CUTOUT
+}
+
+object BlockFractionatingColumn {
+  val NAME = "fractionating_column"
 }

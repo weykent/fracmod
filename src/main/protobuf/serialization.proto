@@ -13,15 +13,11 @@ message Vec3i {
 
 message NetPacket {
     oneof kind {
-        UpdateTank updateTank = 1;
+        UpdateFluids updateFluids = 1;
     }
 }
 
-message UpdateTank {
+message UpdateFluids {
     Vec3i position = 1;
-    TankContents newContents = 2;
-}
-
-message TankContents {
-    EmbeddedNBT fluids = 1;
+    EmbeddedNBT fluids = 2;
 }

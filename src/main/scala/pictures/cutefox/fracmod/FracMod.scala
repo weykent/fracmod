@@ -20,22 +20,22 @@ object FracMod {
     // XXX: Should probably do all of this with the other event subscriber
     // model but it's not clear how to split it all up. Where do the tile
     // entity and model resource registration go?
-    val tank = new BlockTank()
-      .setUnlocalizedName("tank")
-      .setRegistryName("tank")
-    ForgeRegistries.BLOCKS.register(tank)
+    val fc = new BlockFractionatingColumn()
+      .setUnlocalizedName(BlockFractionatingColumn.NAME)
+      .setRegistryName(BlockFractionatingColumn.NAME)
+    ForgeRegistries.BLOCKS.register(fc)
 
-    val tankItem = new ItemBlock(tank)
-      .setRegistryName(tank.getRegistryName)
-    ForgeRegistries.ITEMS.register(tankItem)
+    val fcItem = new ItemBlock(fc)
+      .setRegistryName(fc.getRegistryName)
+    ForgeRegistries.ITEMS.register(fcItem)
 
-    GameRegistry.registerTileEntity(classOf[TileTank], tank.getRegistryName)
+    GameRegistry.registerTileEntity(classOf[TileFractionatingColumn], fc.getRegistryName)
     ModelLoader.setCustomModelResourceLocation(
-      tankItem, 0, new ModelResourceLocation(tankItem.getRegistryName, "inventory"))
+      fcItem, 0, new ModelResourceLocation(fcItem.getRegistryName, "inventory"))
   }
 
   @EventHandler
   def init(event: FMLInitializationEvent): Unit = {
-    ClientRegistry.bindTileEntitySpecialRenderer(classOf[TileTank], new RenderTank)
+    ClientRegistry.bindTileEntitySpecialRenderer(classOf[TileFractionatingColumn], new RenderFractionatingColumn)
   }
 }

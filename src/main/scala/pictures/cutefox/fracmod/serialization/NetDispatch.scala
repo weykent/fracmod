@@ -4,7 +4,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.util.math.BlockPos
 import net.minecraftforge.fluids.FluidStack
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
-import pictures.cutefox.fracmod.TileTank
+import pictures.cutefox.fracmod.TileFractionatingColumn
 
 trait NetDispatch[M] {
   def dispatch(message: M, ctx: MessageContext): Option[NetPacket]
@@ -17,7 +17,7 @@ object NetDispatch {
   implicit def dispatchRequest: NetDispatch[NetPacket] = (req, ctx) => {
     import NetPacket.Kind
     req.kind match {
-      case Kind.UpdateTank(u) => NetDispatch(u, ctx)
+      case Kind.UpdateFluids(u) => NetDispatch(u, ctx)
       case _ => None
     }
   }
@@ -25,7 +25,7 @@ object NetDispatch {
   // XXX: I'm not super happy with the organization of this dispatching. Should
   // I make these in separate files? How does that work with typeclass implicit
   // objects?
-  implicit def dispatchUpdateTank: NetDispatch[UpdateTank] = (update, ctx) => {
+  implicit def dispatchUpdateFluids: NetDispatch[UpdateFluids] = (update, ctx) => {
     val mc = Minecraft.getMinecraft
     // XXX: There's a better way to write anonymous Runnable blocks, right?
     mc.addScheduledTask(new Runnable {
@@ -37,10 +37,10 @@ object NetDispatch {
           return
         }
         world.getTileEntity(blockPos) match {
-          case tank: TileTank => {
-            println(s"-!- loaded: $update $blockPos $tank")
-            for (fluids <- NBT.unembed[List[FluidStack]](update.getNewContents.getFluids)) {
-              tank.fluids = fluids
+          case tile: TileFractionatingColumn => {
+            println(s"-!- loaded: $update $blockPos $tile")
+            for (fluids <- NBT.unembed[List[FluidStack]](update.getFluids)) {
+              tile.fluids = fluids
             }
           }
           case _ =>

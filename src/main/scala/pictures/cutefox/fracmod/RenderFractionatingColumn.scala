@@ -6,16 +6,16 @@ import net.minecraft.util.math.Vec3d
 import net.minecraftforge.client.model.animation.FastTESR
 
 
-class RenderTank extends FastTESR[TileTank] {
-  override def renderTileEntityFast(tank: TileTank, x: Double, y: Double, z: Double,
+class RenderFractionatingColumn extends FastTESR[TileFractionatingColumn] {
+  override def renderTileEntityFast(tile: TileFractionatingColumn, x: Double, y: Double, z: Double,
                                     partialTicks: Float, destroyStage: Int, partial: Float,
                                     buffer: BufferBuilder): Unit = {
-    if (tank.fluids.isEmpty) {
+    if (tile.fluids.isEmpty) {
       return
     }
-    val fluid = tank.fluids.head
+    val fluid = tile.fluids.head
     val lightValue = fluid.getFluid.getLuminosity(fluid)
-    val lightCombined = tank.getWorld.getCombinedLight(tank.getPos, lightValue)
+    val lightCombined = tile.getWorld.getCombinedLight(tile.getPos, lightValue)
 
     buffer.setTranslation(x, y, z)
     FluidRenderer.vertex.lighti(lightCombined)

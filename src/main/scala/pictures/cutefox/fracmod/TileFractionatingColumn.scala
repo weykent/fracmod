@@ -5,13 +5,13 @@ import net.minecraft.tileentity.TileEntity
 import net.minecraft.world.World
 import net.minecraftforge.fluids.{Fluid, FluidRegistry, FluidStack}
 import pictures.cutefox.fracmod.serialization.NBT._
-import pictures.cutefox.fracmod.serialization.{NetPacket, TankContents, UpdateTank}
+import pictures.cutefox.fracmod.serialization.{NetPacket, UpdateFluids}
 
 import scala.collection.JavaConverters._
 import scala.util.Random
 
 
-object TileTank {
+object TileFractionatingColumn {
   def randomFluid(): Fluid = {
     val fluids = FluidRegistry.getRegisteredFluids.asScala
     val fluidIndex = Random.nextInt(fluids.size)
@@ -19,12 +19,12 @@ object TileTank {
   }
 }
 
-class TileTank extends TileEntity {
+class TileFractionatingColumn extends TileEntity {
   var fluids: List[FluidStack] = List()
 
   def setSomeFluid(): Unit = {
     println(s"-!- generated random fluid")
-    fluids = List(new FluidStack(TileTank.randomFluid(), 1000))
+    fluids = List(new FluidStack(TileFractionatingColumn.randomFluid(), 1000))
     sendFluids()
     markDirty()
   }
@@ -68,10 +68,10 @@ class TileTank extends TileEntity {
     // pretty trivial so far but maybe the conversions will get more
     // complicated with other types.
     val position = serialization.Vec3i(pos.getX, pos.getY, pos.getZ)
-    val req = NetPacket(NetPacket.Kind.UpdateTank(
-      UpdateTank(
+    val req = NetPacket(NetPacket.Kind.UpdateFluids(
+      UpdateFluids(
         position = Some(position),
-        newContents = Some(TankContents(Some(serialization.NBT.embed(fluids)))))))
+        fluids = Some(serialization.NBT.embed(fluids)))))
     // XXX: Figure out how to send updates to a smaller subset of clients.
     NetMessage.sendToClient(req)
 
