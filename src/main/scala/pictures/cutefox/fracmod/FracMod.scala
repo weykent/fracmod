@@ -10,7 +10,7 @@ import net.minecraftforge.fml.common.event.{FMLInitializationEvent, FMLPreInitia
 import net.minecraftforge.fml.common.registry.{ForgeRegistries, GameRegistry}
 
 
-@Mod(modid = FracMod.MODID, version = FracMod.VERSION, modLanguage = "scala")
+@Mod(modid = FracMod.MODID, version = FracMod.VERSION, modLanguage = "scala", useMetadata = true)
 object FracMod {
   final val MODID = "fracmod"
   final val VERSION = "0.1"

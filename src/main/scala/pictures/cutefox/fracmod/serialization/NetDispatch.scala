@@ -38,7 +38,6 @@ object NetDispatch {
         }
         world.getTileEntity(blockPos) match {
           case tile: TileFractionatingColumn => {
-            println(s"-!- loaded: $update $blockPos $tile")
             for (fluids <- NBT.unembed[List[FluidStack]](update.getFluids)) {
               tile.fluids = fluids
             }

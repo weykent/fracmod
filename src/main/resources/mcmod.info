@@ -1,16 +1,20 @@
 [
-{
-  "modid": "fracmod",
-  "name": "fracmod",
-  "description": "fracmod",
-  "version": "${version}",
-  "mcversion": "${mcversion}",
-  "url": "",
-  "updateUrl": "",
-  "authorList": ["weykent"],
-  "credits": "The Forge and FML guys, for making this example",
-  "logoFile": "",
-  "screenshots": [],
-  "dependencies": []
-}
+  {
+    "modid": "fracmod",
+    "name": "fracmod",
+    "description": "fracmod",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "",
+    "updateUrl": "",
+    "authorList": [
+      "weykent"
+    ],
+    "credits": "The Forge and FML guys, for making this example",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": [
+      "buildcraft"
+    ]
+  }
 ]

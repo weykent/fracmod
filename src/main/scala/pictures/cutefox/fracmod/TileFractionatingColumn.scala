@@ -1,7 +1,10 @@
 package pictures.cutefox.fracmod
 
+import buildcraft.energy.BCEnergyFluids
+import buildcraft.lib.fluid.BCFluid
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.tileentity.TileEntity
+import net.minecraft.util.ITickable
 import net.minecraft.world.World
 import net.minecraftforge.fluids.{Fluid, FluidRegistry, FluidStack}
 import pictures.cutefox.fracmod.serialization.NBT._
@@ -19,14 +22,17 @@ object TileFractionatingColumn {
   }
 }
 
-class TileFractionatingColumn extends TileEntity {
+class TileFractionatingColumn extends TileEntity with ITickable {
   var fluids: List[FluidStack] = List()
   val CAPACITY = 10000  // mB
 
   def setSomeFluid(): Unit = {
-    println(s"-!- generated random fluid")
-    fluids = (1 to Random.nextInt(10) + 2)
-      .map { _ => new FluidStack(TileFractionatingColumn.randomFluid(), Random.nextInt(500) + 250) }
+    val someFluids = (1 to Random.nextInt(5) + 2)
+      .map { _ => TileFractionatingColumn.randomFluid() }
+    val chooseFluid = () => someFluids(Random.nextInt(someFluids.size))
+
+    fluids = (1 to Random.nextInt(25) + 5)
+      .map { _ => new FluidStack(chooseFluid(), Random.nextInt(500) + 150) }
       .toList
     sendFluids()
     markDirty()
@@ -36,35 +42,65 @@ class TileFractionatingColumn extends TileEntity {
 
   // XXX: Obviously needs some deduplication across these four methods, but I'm
   // still unsure of the relationships between them.
-  override def getUpdateTag: NBTTagCompound = {
-    val ret = super.getUpdateTag
+  override def getUpdateTag: NBTTagCompound =
+    super.getUpdateTag
       .withEncoded("fluids", fluids)
-    println(s"-!- sending update tag NBT $ret")
-    ret
-  }
 
-  override def writeToNBT(compound: NBTTagCompound): NBTTagCompound = {
-    val ret = super.writeToNBT(compound)
+  override def writeToNBT(compound: NBTTagCompound): NBTTagCompound =
+    super.writeToNBT(compound)
       .withEncoded("fluids", fluids)
-    ret.merge(getUpdateTag)
-    println(s"-!- writing NBT $ret")
-    ret
-  }
 
   override def handleUpdateTag(tag: NBTTagCompound): Unit = {
-    println(s"-!- got update tag NBT $tag")
     super.handleUpdateTag(tag)
     fluids = tag.loadDecoded[List[FluidStack]]("fluids").getOrElse(List())
   }
 
   override def readFromNBT(compound: NBTTagCompound): Unit = {
-    println(s"-!- reading NBT $compound")
     super.readFromNBT(compound)
     fluids = compound.loadDecoded[List[FluidStack]]("fluids").getOrElse(List())
   }
 
   override def setWorldCreate(worldIn: World): Unit =
     world = worldIn
+
+  var nextTick: Long = 0
+  override def update(): Unit = {
+    val now = world.getTotalWorldTime
+    if (now < nextTick) {
+      return
+    }
+    nextTick = now + 20
+
+    var changed = false
+    fluids = fluids.iterator
+      .zipAll(fluids.iterator.drop(1).map(Some(_)), null, None)
+      .flatMap {
+        case (curStack, _) if curStack.amount <= 0 => Array[FluidStack]()
+        case (curStack, Some(nextStack)) => {
+          val cur = curStack.getFluid
+          val next = nextStack.getFluid
+          if (cur.getName == next.getName) {
+            changed = true
+            nextStack.amount += curStack.amount
+            Array[FluidStack]()
+          } else if (next.getDensity > cur.getDensity) {
+            changed = true
+            val movingDown = nextStack.amount min 100
+            nextStack.amount -= movingDown
+            Array(new FluidStack(next, movingDown), curStack)
+          } else {
+            Array(curStack)
+          }
+        }
+        case (curStack, None) => Array(curStack)
+      }
+      .toList
+
+    if (changed) {
+      sendFluids()
+      markDirty()
+    }
+  }
 
   private def sendFluids(): Unit = {
     // XXX: Make a typeclass for these conversions too? Vec3i/EmbeddedNBT are
@@ -77,9 +113,6 @@ class TileFractionatingColumn extends TileEntity {
         fluids = Some(serialization.NBT.embed(fluids)))))
     // XXX: Figure out how to send updates to a smaller subset of clients.
     NetMessage.sendToClient(req)
-
-    val displayFluids = fluids.map(fs => fs.getLocalizedName -> fs.amount).toMap
-    println(s"-!- today, my fluids are $displayFluids")
   }
 
   case class FluidToRender(fluid: FluidStack, jitter: Int,
