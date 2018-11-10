@@ -21,10 +21,13 @@ object TileFractionatingColumn {
 
 class TileFractionatingColumn extends TileEntity {
   var fluids: List[FluidStack] = List()
+  val CAPACITY = 10000  // mB
 
   def setSomeFluid(): Unit = {
     println(s"-!- generated random fluid")
-    fluids = List(new FluidStack(TileFractionatingColumn.randomFluid(), 1000))
+    fluids = (1 to Random.nextInt(10) + 2)
+      .map { _ => new FluidStack(TileFractionatingColumn.randomFluid(), Random.nextInt(500) + 250) }
+      .toList
     sendFluids()
     markDirty()
   }
@@ -77,6 +80,27 @@ class TileFractionatingColumn extends TileEntity {
 
     val displayFluids = fluids.map(fs => fs.getLocalizedName -> fs.amount).toMap
     println(s"-!- today, my fluids are $displayFluids")
+  }
+
+  case class FluidToRender(fluid: FluidStack, jitter: Int,
+                           showBottom: Boolean, fractionBottom: Double,
+                           showTop: Boolean, fractionTop: Double)
+
+  def fluidsToRender: Iterator[FluidToRender] = {
+    val lastIndex = fluids.size - 1
+    var currentFraction: Double = 0
+    var currentJitter = 1
+    fluids.iterator
+      .zipWithIndex
+      .map { case (fluid, e) =>
+        val fractionBottom = currentFraction
+        currentFraction += fluid.amount.toDouble / CAPACITY.toDouble
+        currentJitter *= -1
+        FluidToRender(
+          fluid, currentJitter,
+          e == 0, fractionBottom,
+          e == lastIndex, currentFraction)
+      }
   }
 }
 
