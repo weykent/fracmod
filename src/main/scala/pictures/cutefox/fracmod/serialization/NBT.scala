@@ -1,7 +1,8 @@
 package pictures.cutefox.fracmod.serialization
 
-import net.minecraft.nbt.{JsonToNBT, NBTBase, NBTTagCompound, NBTTagList}
+import net.minecraft.nbt._
 import net.minecraftforge.fluids.FluidStack
+import pictures.cutefox.fracmod.TileFractionatingColumn.FractionatingFluidStack
 
 import scala.collection.JavaConverters._
 import scala.util.Try
@@ -42,6 +43,33 @@ object NBT {
       Try(tag.asInstanceOf[NBTTagCompound])
         .toOption
         .flatMap(tag => Option(FluidStack.loadFluidStackFromNBT(tag)))
+  }
+
+  implicit def handleFractionatingFluidStack: NBT[FractionatingFluidStack] = new NBT[FractionatingFluidStack] {
+    override def encode(thing: FractionatingFluidStack): NBTBase =
+      new NBTTagCompound()
+        .withEncoded("fs", thing.fs)
+        .withEncoded("m", thing.moving)
+
+    override def decode(tag: NBTBase): Option[FractionatingFluidStack] =
+      Try(tag.asInstanceOf[NBTTagCompound])
+        .toOption
+        .flatMap { tag =>
+          (tag.loadDecoded[FluidStack]("fs"), tag.loadDecoded[Boolean]("m")) match {
+            case (Some(fs), Some(moving)) => Some(FractionatingFluidStack(fs, moving))
+            case _ => None
+          }
+        }
+  }
+
+  implicit def handleBoolean: NBT[Boolean] = new NBT[Boolean] {
+    override def encode(thing: Boolean): NBTBase =
+      new NBTTagByte(if (thing) 1 else 0)
+
+    override def decode(tag: NBTBase): Option[Boolean] =
+      Try(tag.asInstanceOf[NBTTagByte])
+        .toOption
+        .map { b => b.getByte != 0 }
   }
 
   implicit def handleList[T](implicit obj: NBT[T]): NBT[List[T]] = new NBT[List[T]] {

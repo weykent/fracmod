@@ -7,6 +7,7 @@ import net.minecraft.tileentity.TileEntity
 import net.minecraft.util.ITickable
 import net.minecraft.world.World
 import net.minecraftforge.fluids.{Fluid, FluidRegistry, FluidStack}
+import pictures.cutefox.fracmod.TileFractionatingColumn.FractionatingFluidStack
 import pictures.cutefox.fracmod.serialization.NBT._
 import pictures.cutefox.fracmod.serialization.{NetPacket, UpdateFluids}
 
@@ -20,10 +21,22 @@ object TileFractionatingColumn {
     val fluidIndex = Random.nextInt(fluids.size)
     fluids.values.slice(fluidIndex, fluidIndex + 1).head
   }
+
+  case class FractionatingFluidStack(fs: FluidStack, var moving: Boolean = false) {
+    def beMoving: FractionatingFluidStack = {
+      moving = true
+      this
+    }
+    def stopMoving: FractionatingFluidStack = {
+      moving = false
+      this
+    }
+  }
 }
 
 class TileFractionatingColumn extends TileEntity with ITickable {
-  var fluids: List[FluidStack] = List()
+
+  var fluids: List[FractionatingFluidStack] = List()
   val CAPACITY = 10000  // mB
 
   def setSomeFluid(): Unit = {
@@ -32,7 +45,7 @@ class TileFractionatingColumn extends TileEntity with ITickable {
     val chooseFluid = () => someFluids(Random.nextInt(someFluids.size))
 
     fluids = (1 to Random.nextInt(25) + 5)
-      .map { _ => new FluidStack(chooseFluid(), Random.nextInt(500) + 150) }
+      .map { _ => FractionatingFluidStack(new FluidStack(chooseFluid(), Random.nextInt(500) + 150)) }
       .toList
     sendFluids()
     markDirty()
@@ -52,47 +65,51 @@ class TileFractionatingColumn extends TileEntity with ITickable {
 
   override def handleUpdateTag(tag: NBTTagCompound): Unit = {
     super.handleUpdateTag(tag)
-    fluids = tag.loadDecoded[List[FluidStack]]("fluids").getOrElse(List())
+    fluids = tag.loadDecoded[List[FractionatingFluidStack]]("fluids").getOrElse(List())
   }
 
   override def readFromNBT(compound: NBTTagCompound): Unit = {
     super.readFromNBT(compound)
-    fluids = compound.loadDecoded[List[FluidStack]]("fluids").getOrElse(List())
+    fluids = compound.loadDecoded[List[FractionatingFluidStack]]("fluids").getOrElse(List())
   }
 
   override def setWorldCreate(worldIn: World): Unit =
     world = worldIn
 
+  val TICKS_PER_UPDATE = 20
   var nextTick: Long = 0
+  var now: Long = 0
   override def update(): Unit = {
-    val now = world.getTotalWorldTime
+    now = world.getTotalWorldTime
     if (now < nextTick) {
       return
     }
-    nextTick = now + 20
+    nextTick = now + TICKS_PER_UPDATE
 
     var changed = false
     fluids = fluids.iterator
       .zipAll(fluids.iterator.drop(1).map(Some(_)), null, None)
       .flatMap {
-        case (curStack, _) if curStack.amount <= 0 => Array[FluidStack]()
+        case (curStack, _) if curStack.fs.amount <= 0 => Array[FractionatingFluidStack]()
         case (curStack, Some(nextStack)) => {
-          val cur = curStack.getFluid
-          val next = nextStack.getFluid
+          val cur = curStack.fs.getFluid
+          val next = nextStack.fs.getFluid
           if (cur.getName == next.getName) {
             changed = true
-            nextStack.amount += curStack.amount
-            Array[FluidStack]()
+            nextStack.fs.amount += curStack.fs.amount
+            Array[FractionatingFluidStack]()
           } else if (next.getDensity > cur.getDensity) {
             changed = true
-            val movingDown = nextStack.amount min 100
-            nextStack.amount -= movingDown
-            Array(new FluidStack(next, movingDown), curStack)
+            val movingDown = nextStack.fs.amount min 100
+            nextStack.fs.amount -= movingDown
+            Array(
+              FractionatingFluidStack(new FluidStack(next, movingDown), moving = true),
+              curStack.stopMoving)
           } else {
-            Array(curStack)
+            Array(curStack.stopMoving)
           }
         }
-        case (curStack, None) => Array(curStack)
+        case (curStack, None) => Array(curStack.stopMoving)
       }
       .toList
 
@@ -100,6 +117,11 @@ class TileFractionatingColumn extends TileEntity with ITickable {
       sendFluids()
       markDirty()
     }
+  }
+
+  def getBubbleRatio(partialTicks: Float): Float = {
+    val fullTicks = TICKS_PER_UPDATE - (nextTick - now)
+    (fullTicks.floatValue + partialTicks) / TICKS_PER_UPDATE
   }
 
   private def sendFluids(): Unit = {
@@ -116,23 +138,48 @@ class TileFractionatingColumn extends TileEntity with ITickable {
   }
 
   case class FluidToRender(fluid: FluidStack, jitter: Int,
-                           showBottom: Boolean, fractionBottom: Double,
-                           showTop: Boolean, fractionTop: Double)
+                           showBottom: Boolean, ratioBottom: Double,
+                           showTop: Boolean, ratioTop: Double)
 
-  def fluidsToRender: Iterator[FluidToRender] = {
+  def fluidsToRender(partialTicks: Float = 0): Iterator[FluidToRender] = {
+    val bubbleRatio = getBubbleRatio(partialTicks)
     val lastIndex = fluids.size - 1
-    var currentFraction: Double = 0
+    var currentRatio: Double = 0
+    var ratioOverrides = Map[Int, Double]()
+    // XXX: Reapply jitter. Disabled only because lazy.
     var currentJitter = 1
     fluids.iterator
       .zipWithIndex
-      .map { case (fluid, e) =>
-        val fractionBottom = currentFraction
-        currentFraction += fluid.amount.toDouble / CAPACITY.toDouble
-        currentJitter *= -1
-        FluidToRender(
-          fluid, currentJitter,
-          e == 0, fractionBottom,
-          e == lastIndex, currentFraction)
+      .flatMap {
+        case (fluid, e) if fluid.moving && e < lastIndex => {
+          val nextFluid = fluids(e + 1)
+          val thisFluidRatio = ratioOverrides.getOrElse(e, fluid.fs.amount.toDouble / CAPACITY.toDouble)
+          val nextFluidRatio = nextFluid.fs.amount.toDouble / CAPACITY.toDouble
+          val bottomRatio = nextFluidRatio * (1 - bubbleRatio)
+          val topRatio = nextFluidRatio * bubbleRatio
+          // XXX: There really has to be a better way to write these sums.
+          val ret = Array(
+            FluidToRender(
+              nextFluid.fs, jitter = 0,
+              showBottom = e == 0, currentRatio,
+              showTop = false, currentRatio + bottomRatio),
+            FluidToRender(
+              fluid.fs, jitter = 0,
+              showBottom = false, currentRatio + bottomRatio,
+              showTop = false, currentRatio + bottomRatio + thisFluidRatio),
+          )
+          currentRatio += bottomRatio + thisFluidRatio
+          ratioOverrides += e + 1 -> topRatio
+          ret
+        }
+        case (fluid, e) => {
+          val bottomRatio = currentRatio
+          currentRatio += ratioOverrides.getOrElse(e, fluid.fs.amount.toDouble / CAPACITY.toDouble)
+          Array(FluidToRender(
+            fluid.fs, jitter = 0,
+            showBottom = e == 0, bottomRatio,
+            showTop = e == lastIndex, currentRatio))
+        }
       }
   }
 }

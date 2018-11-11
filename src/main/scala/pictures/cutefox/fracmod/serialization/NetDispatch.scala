@@ -5,6 +5,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraftforge.fluids.FluidStack
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
 import pictures.cutefox.fracmod.TileFractionatingColumn
+import pictures.cutefox.fracmod.TileFractionatingColumn.FractionatingFluidStack
 
 trait NetDispatch[M] {
   def dispatch(message: M, ctx: MessageContext): Option[NetPacket]
@@ -38,7 +39,7 @@ object NetDispatch {
         }
         world.getTileEntity(blockPos) match {
           case tile: TileFractionatingColumn => {
-            for (fluids <- NBT.unembed[List[FluidStack]](update.getFluids)) {
+            for (fluids <- NBT.unembed[List[FractionatingFluidStack]](update.getFluids)) {
               tile.fluids = fluids
             }
           }
